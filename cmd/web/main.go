@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"flag"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -12,9 +13,10 @@ import (
 )
 
 type application struct {
-	infoLog  *log.Logger
-	errorLog *log.Logger
-	snippets *mysql.SnippetModel
+	infoLog       *log.Logger
+	errorLog      *log.Logger
+	snippets      *mysql.SnippetModel
+	templateCache map[string]*template.Template
 }
 
 func main() {
@@ -33,10 +35,16 @@ func main() {
 
 	defer db.Close()
 
+	templateCache, err := newTemplateCache("./ui/html/")
+	if err != nil {
+		errorLog.Fatal(err)
+	}
+
 	app := &application{
-		infoLog:  infoLog,
-		errorLog: errorLog,
-		snippets: &mysql.SnippetModel{DB: db},
+		infoLog:       infoLog,
+		errorLog:      errorLog,
+		snippets:      &mysql.SnippetModel{DB: db},
+		templateCache: templateCache,
 	}
 
 	srv := &http.Server{
