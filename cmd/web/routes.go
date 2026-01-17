@@ -8,7 +8,7 @@ import (
 
 func (app *application) routes() http.Handler {
 	standardMiddleware := alice.New(app.recoverPanic, app.logRequest, secureHeaders)
-	dynamicMiddleware := alice.New(app.session.Enable)
+	dynamicMiddleware := alice.New(app.session.LoadAndSave)
 	router := http.NewServeMux()
 
 	router.Handle("GET /snippet/create", dynamicMiddleware.ThenFunc(app.createSnippetForm))
