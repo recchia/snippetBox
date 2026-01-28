@@ -2,7 +2,6 @@
 {{define "title"}}Create a New Snippet{{end}}
 {{define "main"}}
 <form action='/snippet/create' method='POST'>
-    {{with .Form}}
     <div>
         <label>Title:</label>
         {{with .Errors.Get "title"}}
@@ -22,10 +21,10 @@
         {{with .Errors.Get "expires"}}
         <label class='error'>{{.}}</label>
         {{end}}
-        {{$exp := or (.Get "expires") "365"}}
         <input type='radio' name='expires' value='365' {{if (eq $exp "365")}}checked{{end}}> One Year
-        <input type='radio' name='expires' value='7' {{if (eq $exp "7")}}checked{{end}}> One Week
-        <input type='radio' name='expires' value='1' {{if (eq $exp "1")}}checked{{end}}> One Day
+        {{$exp := or (.Form.Expires) 365}}
+        <input type='radio' name='expires' value='7' {{if (eq $exp 7)}}checked{{end}}> One Week
+        <input type='radio' name='expires' value='1' {{if (eq $exp 1)}}checked{{end}}> One Day
     </div>
     <div>
         <input type='submit' value='Publish snippet'>

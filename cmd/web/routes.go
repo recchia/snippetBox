@@ -4,23 +4,26 @@ import (
 	"net/http"
 
 	"github.com/justinas/alice"
+	"github.com/recchia/snippetbox/ui"
 )
 
 func (app *application) routes() http.Handler {
-	standardMiddleware := alice.New(app.recoverPanic, app.logRequest, secureHeaders)
-	dynamicMiddleware := alice.New(app.session.LoadAndSave)
 	router := http.NewServeMux()
 
-	router.Handle("GET /snippet/create", dynamicMiddleware.Append(app.requireAuthentication).ThenFunc(app.createSnippetForm))
-	router.Handle("POST /snippet/create", dynamicMiddleware.Append(app.requireAuthentication).ThenFunc(app.createSnippet))
-	router.Handle("GET /snippet/{id}", dynamicMiddleware.ThenFunc(app.showSnippet))
-	router.Handle("GET /", dynamicMiddleware.ThenFunc(app.home))
 
-	router.Handle("GET /user/signup", dynamicMiddleware.ThenFunc(app.signUpUserForm))
-	router.Handle("POST /user/signup", dynamicMiddleware.ThenFunc(app.signUpUser))
-	router.Handle("GET /user/signin", dynamicMiddleware.ThenFunc(app.signInUserForm))
-	router.Handle("POST /user/signin", dynamicMiddleware.ThenFunc(app.signInUser))
-	router.Handle("POST /user/signout", dynamicMiddleware.Append(app.requireAuthentication).ThenFunc(app.signOutUser))
+	dynamic := alice.New(app.sessionManager.LoadAndSave, noSurf, app.authenticate)
+
+	router.Handle("GET /{$}", dynamic.ThenFunc(app.home))
+	router.Handle("GET /snippet/view/{id}", dynamic.ThenFunc(app.snippetView))
+	router.Handle("GET /user/signup", dynamic.ThenFunc(app.userSignup))
+	router.Handle("POST /user/signup", dynamic.ThenFunc(app.userSignupPost))
+	router.Handle("GET /user/signin", dynamic.ThenFunc(app.userSignIn))
+	router.Handle("POST /user/signin", dynamic.ThenFunc(app.userSignInPost))
+
+
+	router.Handle("GET /snippet/create", protected.ThenFunc(app.snippetCreate))
+	router.Handle("POST /snippet/create", protected.ThenFunc(app.snippetCreatePost))
+	router.Handle("POST /user/signout", protected.ThenFunc(app.userSignOutPost))
 
 	fileServer := http.FileServer(http.Dir("./ui/static/"))
 	router.Handle("GET /static/", http.StripPrefix("/static", fileServer))

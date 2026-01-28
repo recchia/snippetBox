@@ -5,49 +5,51 @@ import (
 	"database/sql"
 	"flag"
 	"html/template"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/alexedwards/scs/mysqlstore"
 	"github.com/alexedwards/scs/v2"
+	"github.com/go-playground/form/v4"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/recchia/snippetbox/pkg/models/mysql"
 )
 
 type application struct {
-	infoLog       *log.Logger
-	errorLog      *log.Logger
-	session       *scs.SessionManager
-	snippets      *mysql.SnippetModel
-	templateCache map[string]*template.Template
-	users         *mysql.UserModel
+	logger         *slog.Logger
+	formDecoder    *form.Decoder
+	sessionManager *scs.SessionManager
 }
 
 func main() {
 	addr := flag.String("addr", ":4000", "HTTP network address")
 	dsn := flag.String("dsn", "snippet_box:SnippetBox!2026@tcp(localhost:3306)/snippet_box?parseTime=true", "MySQL DSN")
-	//secret := flag.String("secret", "bc645152aa625871f34bbe871d3188adf25b5a10ef0f7ba905e003ae52646bb6", "Session secret key")
 	flag.Parse()
 
-	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
-	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	db, err := openDB(*dsn)
 
 	if err != nil {
-		errorLog.Fatal(err)
+		logger.Error(err.Error())
+		os.Exit(1)
 	}
 
 	defer db.Close()
 
 	templateCache, err := newTemplateCache("./ui/html/")
 	if err != nil {
-		errorLog.Fatal(err)
+		logger.Error(err.Error())
+		os.Exit(1)
 	}
 
-	session := scs.New()
-	session.Lifetime = 12 * time.Hour
+	sessionManager := scs.New()
+	sessionManager.Store = mysqlstore.New(db)
+	sessionManager.Lifetime = 12 * time.Hour
+
+	formDecoder := form.NewDecoder()
 
 	app := &application{
 		infoLog:       infoLog,
@@ -64,7 +66,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:         *addr,
-		ErrorLog:     errorLog,
+		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 		Handler:      app.routes(),
 		TLSConfig:    tlsConfig,
 		IdleTimeout:  time.Minute,
@@ -72,9 +74,10 @@ func main() {
 		WriteTimeout: 10 * time.Second,
 	}
 
-	infoLog.Printf("Starting server on %s", *addr)
+	logger.Info("Server started", "addr", *addr)
 	err = srv.ListenAndServeTLS("./tls/cert.pem", "./tls/key.pem")
-	errorLog.Fatal(err)
+	logger.Error(err.Error(), "addr", *addr)
+	os.Exit(1)
 }
 
 func openDB(dsn string) (*sql.DB, error) {

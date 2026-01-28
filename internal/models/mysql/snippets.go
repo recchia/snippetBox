@@ -3,15 +3,30 @@ package mysql
 import (
 	"database/sql"
 	"errors"
+	"time"
 
-	"github.com/recchia/snippetbox/pkg/models"
+	"github.com/recchia/snippetbox/internal/models"
 )
+
+type SnippetModelInterface interface {
+	Insert(title, content string, expires int) (int, error)
+	Get(id int) (Snippet, error)
+	Latest() ([]Snippet, error)
+}
+
+type Snippet struct {
+	ID      int
+	Title   string
+	Content string
+	Created time.Time
+	Expires time.Time
+}
 
 type SnippetModel struct {
 	DB *sql.DB
 }
 
-func (m *SnippetModel) Insert(title, content, expires string) (int, error) {
+func (m *SnippetModel) Insert(title, content string, expires int) (int, error) {
 	stmt := `INSERT INTO snippets (title, content, created, expires) 
     VALUES (?, ?, UTC_TIMESTAMP(), DATE_ADD(UTC_TIMESTAMP(), INTERVAL ? DAY))`
 
@@ -28,26 +43,26 @@ func (m *SnippetModel) Insert(title, content, expires string) (int, error) {
 	return int(id), nil
 }
 
-func (m *SnippetModel) Get(id int) (*models.Snippet, error) {
+func (m *SnippetModel) Get(id int) (Snippet, error) {
 	stmt := `SELECT id, title, content, created, expires FROM snippets 
 	WHERE expires > UTC_TIMESTAMP() AND id = ?`
 
-	s := &models.Snippet{}
+	var s Snippet
 
 	err := m.DB.QueryRow(stmt, id).Scan(&s.ID, &s.Title, &s.Content, &s.Created, &s.Expires)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, models.ErrNoRecord
+			return Snippet{}, models.ErrNoRecord
 		}
 
-		return nil, err
+		return Snippet{}, err
 	}
 
 	return s, nil
 }
 
-func (m *SnippetModel) Latest() ([]*models.Snippet, error) {
+func (m *SnippetModel) Latest() ([]Snippet, error) {
 	stmt := `SELECT id, title, content, created, expires FROM snippets 
 	WHERE expires > UTC_TIMESTAMP() ORDER BY created DESC LIMIT 10`
 
@@ -59,10 +74,10 @@ func (m *SnippetModel) Latest() ([]*models.Snippet, error) {
 
 	defer rows.Close()
 
-	snippets := []*models.Snippet{}
+	var snippets []Snippet
 
 	for rows.Next() {
-		s := &models.Snippet{}
+		s := Snippet{}
 		err := rows.Scan(&s.ID, &s.Title, &s.Content, &s.Created, &s.Expires)
 
 		if err != nil {

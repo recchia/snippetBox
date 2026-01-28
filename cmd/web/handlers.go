@@ -20,7 +20,7 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	app.render(w, r, "home.page.html", &templateData{Snippets: s})
 }
 
-func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
+func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 
 	if err != nil || id < 1 {
@@ -45,12 +45,12 @@ func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (app *application) createSnippetForm(w http.ResponseWriter, r *http.Request) {
-	app.render(w, r, "create.page.html", &templateData{Form: forms.New(nil)})
 }
 
-func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseForm()
+func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request) {
+	var form snippetCreateForm
+
+	err := app.decodePostForm(r, &form)
 	if err != nil {
 		app.clientError(w, http.StatusBadRequest)
 		return
@@ -71,17 +71,15 @@ func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	app.session.Put(r.Context(), "flash", "Snippet created successfully!")
+	app.sessionManager.Put(r.Context(), "flash", "Snippet created successfully!")
 
-	http.Redirect(w, r, fmt.Sprintf("/snippet/%d", id), http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/snippet/view/%d", id), http.StatusSeeOther)
 }
 
-func (app *application) signUpUserForm(w http.ResponseWriter, r *http.Request) {
-	app.render(w, r, "signup.page.html", &templateData{Form: forms.New(nil)})
+func (app *application) userSignup(w http.ResponseWriter, r *http.Request) {
 }
 
-func (app *application) signUpUser(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseForm()
+func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		app.clientError(w, http.StatusBadRequest)
@@ -113,17 +111,17 @@ func (app *application) signUpUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	app.session.Put(r.Context(), "flash", "Your signup was successful. Please sign in.")
+	app.sessionManager.Put(r.Context(), "flash", "Your signup was successful. Please sign in.")
 
 	http.Redirect(w, r, "/user/signin", http.StatusSeeOther)
 }
 
-func (app *application) signInUserForm(w http.ResponseWriter, r *http.Request) {
-	app.render(w, r, "signin.page.html", &templateData{Form: forms.New(nil)})
 }
 
-func (app *application) signInUser(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseForm()
+func (app *application) userSignInPost(w http.ResponseWriter, r *http.Request) {
+	var form = userSignInForm{}
+
+	err := app.decodePostForm(r, &form)
 
 	if err != nil {
 		app.clientError(w, http.StatusBadRequest)
@@ -144,13 +142,31 @@ func (app *application) signInUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	app.session.Put(r.Context(), "authenticatedUserID", id)
+	err = app.sessionManager.RenewToken(r.Context())
+
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "authenticatedUserID", id)
 
 	http.Redirect(w, r, "/snippet/create", http.StatusSeeOther)
 }
 
-func (app *application) signOutUser(w http.ResponseWriter, r *http.Request) {
-	app.session.Remove(r.Context(), "authenticatedUserID")
-	app.session.Put(r.Context(), "flash", "You have been signed out successfully.")
+func (app *application) userSignOutPost(w http.ResponseWriter, r *http.Request) {
+	err := app.sessionManager.RenewToken(r.Context())
+
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	app.sessionManager.Remove(r.Context(), "authenticatedUserID")
+	app.sessionManager.Put(r.Context(), "flash", "You have been signed out successfully.")
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func ping(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("OK"))
 }

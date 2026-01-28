@@ -4,11 +4,27 @@ import (
 	"database/sql"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/go-sql-driver/mysql"
-	"github.com/recchia/snippetbox/pkg/models"
+	"github.com/recchia/snippetbox/internal/models"
 	"golang.org/x/crypto/bcrypt"
 )
+
+type UserModelInterface interface {
+	Insert(name, email, password string) error
+	Authenticate(email, password string) (int, error)
+	Exists(id int) (bool, error)
+}
+
+type User struct {
+	ID             int
+	Name           string
+	Email          string
+	HashedPassword []byte
+	Created        time.Time
+	Active         bool
+}
 
 type UserModel struct {
 	DB *sql.DB
@@ -22,7 +38,7 @@ func (m *UserModel) Insert(name, email, password string) error {
 	}
 
 	stmt := `INSERT INTO users (name, email, hashed_password, created) VALUES (?, ?, ?, UTC_TIMESTAMP())`
-	_, err = m.DB.Exec(stmt, name, email, hashedPassword)
+	_, err = m.DB.Exec(stmt, name, email, string(hashedPassword))
 
 	if err != nil {
 		var mySQLError *mysql.MySQLError
@@ -64,6 +80,10 @@ func (m *UserModel) Authenticate(email, password string) (int, error) {
 	return id, nil
 }
 
-func (m *UserModel) Get(id int) (*models.User, error) {
-	return nil, nil
+func (m *UserModel) Exists(id int) (bool, error) {
+	var exists bool
+	stmt := `SELECT EXISTS(SELECT true FROM users WHERE id = ?)`
+	err := m.DB.QueryRow(stmt, id).Scan(&exists)
+
+	return exists, err
 }
