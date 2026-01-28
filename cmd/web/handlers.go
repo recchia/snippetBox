@@ -190,6 +190,13 @@ func (app *application) userSignInPost(w http.ResponseWriter, r *http.Request) {
 
 	app.sessionManager.Put(r.Context(), "authenticatedUserID", id)
 
+	returnTo := app.sessionManager.PopString(r.Context(), "returnTo")
+
+	if returnTo != "" {
+		http.Redirect(w, r, returnTo, http.StatusSeeOther)
+		return
+	}
+
 	http.Redirect(w, r, "/snippet/create", http.StatusSeeOther)
 }
 
