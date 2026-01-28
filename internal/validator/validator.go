@@ -42,7 +42,7 @@ func NotBlank(value string) bool {
 	return strings.TrimSpace(value) != ""
 }
 
-func MaxLength(value string, max int) bool {
+func MaxChars(value string, max int) bool {
 	return utf8.RuneCountInString(value) <= max
 }
 
@@ -50,7 +50,7 @@ func PermittedValue[T comparable](value T, permittedValues ...T) bool {
 	return slices.Contains(permittedValues, value)
 }
 
-func MinLength(value string, min int) bool {
+func MinChars(value string, min int) bool {
 	return utf8.RuneCountInString(value) >= min
 }
 

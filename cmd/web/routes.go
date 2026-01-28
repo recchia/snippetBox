@@ -26,8 +26,10 @@ func (app *application) routes() http.Handler {
 
 	router.Handle("GET /snippet/create", protected.ThenFunc(app.snippetCreate))
 	router.Handle("POST /snippet/create", protected.ThenFunc(app.snippetCreatePost))
-	router.Handle("POST /user/signout", protected.ThenFunc(app.userSignOutPost))
 	router.Handle("GET /account/view", protected.ThenFunc(app.accountView))
+	router.Handle("GET /account/password/update", protected.ThenFunc(app.accountPasswordUpdate))
+	router.Handle("POST /account/password/update", protected.ThenFunc(app.accountPasswordUpdatePost))
+	router.Handle("POST /user/signout", protected.ThenFunc(app.userSignOutPost))
 
 	router.Handle("GET /ping", http.HandlerFunc(ping))
 
