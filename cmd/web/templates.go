@@ -18,6 +18,7 @@ type templateData struct {
 	IsAuthenticated bool
 	Snippet         mysql.Snippet
 	Snippets        []mysql.Snippet
+	User            mysql.User
 }
 
 func humanDate(t time.Time) string {
@@ -54,7 +55,7 @@ func newTemplateCache() (map[string]*template.Template, error) {
 		if err != nil {
 			return nil, err
 		}
-		
+
 		cache[name] = ts
 	}
 

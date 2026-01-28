@@ -20,7 +20,13 @@ func (app *application) serverError(w http.ResponseWriter, r *http.Request, err 
 	)
 	app.logger.Error(err.Error(), "method", method, "uri", uri, "stacktrace", trace)
 
-	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	body := http.StatusText(http.StatusInternalServerError)
+
+	if app.debugMode {
+		body = fmt.Sprintf("%s\n\n%s", err, trace)
+	}
+
+	http.Error(w, body, http.StatusInternalServerError)
 }
 
 func (app *application) clientError(w http.ResponseWriter, status int) {

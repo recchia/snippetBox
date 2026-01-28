@@ -1,10 +1,29 @@
 package mock
 
 import (
+	"time"
+
 	"github.com/recchia/snippetbox/internal/models"
+	"github.com/recchia/snippetbox/internal/models/mysql"
 )
 
 type UserModel struct{}
+
+var mockUser = mysql.User{
+	ID:      1,
+	Name:    "Alice",
+	Email:   "alice@example.com",
+	Created: time.Now(),
+}
+
+func (m *UserModel) Get(id int) (mysql.User, error) {
+	switch id {
+	case 1:
+		return mockUser, nil
+	default:
+		return mysql.User{}, models.ErrNoRecord
+	}
+}
 
 func (m *UserModel) Insert(name, email, password string) error {
 	switch email {
