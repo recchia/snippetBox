@@ -20,6 +20,7 @@ func (app *application) routes() http.Handler {
 	router.Handle("GET /user/signin", dynamic.ThenFunc(app.userSignIn))
 	router.Handle("POST /user/signin", dynamic.ThenFunc(app.userSignInPost))
 
+	protected := dynamic.Append(app.requireAuthentication)
 
 	router.Handle("GET /snippet/create", protected.ThenFunc(app.snippetCreate))
 	router.Handle("POST /snippet/create", protected.ThenFunc(app.snippetCreatePost))
