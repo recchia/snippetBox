@@ -14,11 +14,14 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-playground/form/v4"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/recchia/snippetbox/pkg/models/mysql"
+	"github.com/recchia/snippetbox/internal/models/mysql"
 )
 
 type application struct {
 	logger         *slog.Logger
+	snippets       mysql.SnippetModelInterface
+	users          mysql.UserModelInterface
+	templateCache  map[string]*template.Template
 	formDecoder    *form.Decoder
 	sessionManager *scs.SessionManager
 }
@@ -39,7 +42,7 @@ func main() {
 
 	defer db.Close()
 
-	templateCache, err := newTemplateCache("./ui/html/")
+	templateCache, err := newTemplateCache()
 	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(1)
@@ -52,12 +55,12 @@ func main() {
 	formDecoder := form.NewDecoder()
 
 	app := &application{
-		infoLog:       infoLog,
-		errorLog:      errorLog,
-		session:       session,
-		snippets:      &mysql.SnippetModel{DB: db},
-		templateCache: templateCache,
-		users:         &mysql.UserModel{DB: db},
+		logger:         logger,
+		snippets:       &mysql.SnippetModel{DB: db},
+		users:          &mysql.UserModel{DB: db},
+		templateCache:  templateCache,
+		formDecoder:    formDecoder,
+		sessionManager: sessionManager,
 	}
 
 	tlsConfig := &tls.Config{
