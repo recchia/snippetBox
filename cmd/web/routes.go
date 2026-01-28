@@ -29,5 +29,7 @@ func (app *application) routes() http.Handler {
 
 	router.Handle("GET /ping", http.HandlerFunc(ping))
 
-	return standardMiddleware.Then(router)
+	standard := alice.New(app.recoverPanic, app.logRequest, commonHeaders)
+
+	return standard.Then(router)
 }
