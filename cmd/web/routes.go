@@ -15,6 +15,7 @@ func (app *application) routes() http.Handler {
 	dynamic := alice.New(app.sessionManager.LoadAndSave, noSurf, app.authenticate)
 
 	router.Handle("GET /{$}", dynamic.ThenFunc(app.home))
+	router.Handle("GET /about", dynamic.ThenFunc(app.about))
 	router.Handle("GET /snippet/view/{id}", dynamic.ThenFunc(app.snippetView))
 	router.Handle("GET /user/signup", dynamic.ThenFunc(app.userSignup))
 	router.Handle("POST /user/signup", dynamic.ThenFunc(app.userSignupPost))
