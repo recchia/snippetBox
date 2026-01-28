@@ -10,6 +10,7 @@ import (
 func (app *application) routes() http.Handler {
 	router := http.NewServeMux()
 
+	router.Handle("GET /static/", http.FileServerFS(ui.Files))
 
 	dynamic := alice.New(app.sessionManager.LoadAndSave, noSurf, app.authenticate)
 
@@ -26,8 +27,7 @@ func (app *application) routes() http.Handler {
 	router.Handle("POST /snippet/create", protected.ThenFunc(app.snippetCreatePost))
 	router.Handle("POST /user/signout", protected.ThenFunc(app.userSignOutPost))
 
-	fileServer := http.FileServer(http.Dir("./ui/static/"))
-	router.Handle("GET /static/", http.StripPrefix("/static", fileServer))
+	router.Handle("GET /ping", http.HandlerFunc(ping))
 
 	return standardMiddleware.Then(router)
 }

@@ -37,7 +37,7 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	app.render(w, r, "home.page.html", &templateData{Snippets: s})
+	app.render(w, r, http.StatusOK, "home.html", &templateData{Snippets: s})
 }
 
 func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
@@ -60,11 +60,17 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	app.render(w, r, "show.page.html", &templateData{
+	app.render(w, r, http.StatusOK, "view.html", &templateData{
 		Snippet: s,
 	})
 }
 
+func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
+	form := snippetCreateForm{
+		Expires: 365,
+	}
+
+	app.render(w, r, http.StatusOK, "create.html", &templateData{Form: form})
 }
 
 func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request) {
@@ -98,6 +104,7 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 }
 
 func (app *application) userSignup(w http.ResponseWriter, r *http.Request) {
+	app.render(w, r, http.StatusOK, "signup.html", &templateData{Form: userSignupForm{}})
 }
 
 func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
@@ -138,6 +145,8 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/user/signin", http.StatusSeeOther)
 }
 
+func (app *application) userSignIn(w http.ResponseWriter, r *http.Request) {
+	app.render(w, r, http.StatusOK, "signin.html", &templateData{Form: userSignInForm{}})
 }
 
 func (app *application) userSignInPost(w http.ResponseWriter, r *http.Request) {
@@ -163,8 +172,8 @@ func (app *application) userSignInPost(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if errors.Is(err, models.ErrInvalidCredentials) {
-			form.Errors.Add("generic", "Email or Password is incorrect")
-			app.render(w, r, "signin.page.html", &templateData{Form: form})
+			form.AddNonFieldError("Email or Password is incorrect")
+			app.render(w, r, http.StatusOK, "signin.html", &templateData{Form: form})
 		} else {
 			app.serverError(w, r, err)
 		}
